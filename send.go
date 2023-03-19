@@ -69,3 +69,32 @@ func sendPhoto(botUrl string, chatId int, url string) (error) {
 	}
 	return nil
 }
+
+func sendPhotosGroup(botUrl string, chatId int, urls []string) (error) {
+	type InputMediaPhoto struct {
+		Type 	string		 	`json:"type"`
+		Media 	string 			`json:"media"`
+	}
+	
+	type BotPhotos struct {
+		ChatId	int 					`json:"chat_id"`
+		Media 	[]InputMediaPhoto 		`json:"media"`
+	}
+	var botPhotos BotPhotos
+	botPhotos.ChatId = chatId
+	for _, u := range urls {
+		botPhotos.Media = append(botPhotos.Media, InputMediaPhoto{
+			Type: "photo",
+			Media: u,
+		})
+	}
+	buf, err := json.MarshalIndent(botPhotos, "", " ")
+	if err != nil {
+		return err
+	}
+	_, err = http.Post(botUrl + "/sendMediaGroup", "application/json", bytes.NewBuffer(buf))
+	if err != nil {
+		return err
+	}
+	return nil
+}
