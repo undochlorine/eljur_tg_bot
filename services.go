@@ -98,6 +98,15 @@ func findInterval(tasksBlock [][]string, str string) (int, error) {
 func handleTaskQuery(botUrl string, chatId int, subject, deepData, blockWithPostfix string, block [][]string) (error) {
 	if deepData == blockWithPostfix {
 	    kbd := GenerateGridIntervalString(block, 3, "library;ceko;"+subject+blockWithPostfix)
+	    kbd.InlineKeyboard = append(
+	    	kbd.InlineKeyboard,
+	    	[]InlineKeyboardButton{
+	       		{
+	       			Text: "⏪ Сменить задание",
+	       			CallbackData: "library;ceko;"+subject,
+	       		},
+	    	},
+	    )
 	    err := SendInlineKeyboard(botUrl, chatId, "Номер упражнения:", kbd)
 	    if err != nil {
 	        return err
@@ -130,6 +139,15 @@ func handleTaskQuery(botUrl string, chatId int, subject, deepData, blockWithPost
 	            return err
 	        }
 	        kbd := GenerateGridIntervalString(block, 3, "library;ceko;"+subject+blockWithPostfix)
+		    kbd.InlineKeyboard = append(
+		    	kbd.InlineKeyboard,
+		    	[]InlineKeyboardButton{
+			       		{
+			       			Text: "⏪ Сменить задание",
+			       			CallbackData: "library;ceko;"+subject,
+			       		},
+		  	    	},
+		    )
 	        err = SendInlineKeyboard(botUrl, chatId, "Упражнение выполнено? Выберите следующее:", kbd)
 	        if err != nil {
 	            return err
