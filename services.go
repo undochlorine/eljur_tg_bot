@@ -32,6 +32,19 @@ func GenerateGridInt(amountOfBlocks int, columns int, callbackDataPrefix string)
 			}
 		}
 	}
+	callbackDataToGetBack := callbackDataPrefix[:len(callbackDataPrefix)-1]
+	for {
+		if callbackDataToGetBack[len(callbackDataToGetBack)-1] == ';' {
+			break
+		}
+		callbackDataToGetBack = callbackDataToGetBack[:len(callbackDataToGetBack)-1]
+	}
+	inlineKeyboard = append(inlineKeyboard, []InlineKeyboardButton{
+		{
+			Text: "⏪ Сменить предмет",
+			CallbackData: callbackDataToGetBack,
+		},
+	})
 	kbd := InlineKeyboardMarkup{
 		InlineKeyboard: inlineKeyboard,
 	}
