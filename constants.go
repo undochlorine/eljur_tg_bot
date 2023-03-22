@@ -391,3 +391,27 @@ var TasksOfBlock21Math = [][]string{
 	{"52","65", defaultTaskUrl+"/"+subjects["math"]+defaultTaskUrlMock+"/задание 21/математика р_страница_314.jpg"},
 	{"66","79", defaultTaskUrl+"/"+subjects["math"]+defaultTaskUrlMock+"/задание 21/математика р_страница_315.jpg"},
 }
+
+var mathBlocks = [][][]string{
+	TasksOfBlock1Math,
+	TasksOfBlock2Math,
+	TasksOfBlock3Math,
+	TasksOfBlock4Math,
+	TasksOfBlock5Math,
+	TasksOfBlock6Math,
+	TasksOfBlock7Math,
+	TasksOfBlock8Math,
+	TasksOfBlock9Math,
+	TasksOfBlock10Math,
+	TasksOfBlock11Math,
+	TasksOfBlock12Math,
+	TasksOfBlock13Math,
+	TasksOfBlock14Math,
+	TasksOfBlock15Math,
+	TasksOfBlock16Math,
+	TasksOfBlock17Math,
+	TasksOfBlock18Math,
+	TasksOfBlock19Math,
+	TasksOfBlock20Math,
+	TasksOfBlock21Math,
+}
