@@ -2,21 +2,51 @@ package main
 
 import (
 	"encoding/json"
-	"log"
 	"fmt"
-	"strings"
+	"io"
+	"log"
+	"os"
 	"strconv"
+	"strings"
+	"tgbot/assets/ceko"
+	"tgbot/internal/types"
+	"tgbot/pkg/send"
+	"tgbot/pkg/service/generate"
+	"tgbot/pkg/service/handle"
 )
 
-func main() {	
+func main() {
+
+	BOT_TOKEN := os.Getenv("BOT_TOKEN")
+	if BOT_TOKEN == "" {
+		log.Println("BOT_TOKEN env var is not set")
+		secretJsonFile, err := os.Open("../../config/secret.json")
+		if err != nil {
+			log.Fatal("Json secret file wasn't found! Exit.")
+		}
+		fmt.Println("Successfully opened secret.json")
+		type SecretJson struct {
+			BOT_TOKEN string
+		}
+
+		secretJsonByteValue, _ := io.ReadAll(secretJsonFile)
+
+		var secretJsonData SecretJson
+
+		json.Unmarshal(secretJsonByteValue, &secretJsonData)
+
+		BOT_TOKEN = secretJsonData.BOT_TOKEN
+
+		secretJsonFile.Close()
+	}
 
 	fmt.Println("Bot has been launched")
 
 	botAPI := "https://api.telegram.org/bot"
 	botUrl := botAPI + BOT_TOKEN
 
-	commands := BotCommands{
-		Commands: []BotCommand{
+	commands := types.BotCommands{
+		Commands: []types.BotCommand{
 			{Command: "/start", Description: "Simplify your life with our awesome bot"},
 			{Command: "/library", Description: "Get list of resources to study"},
 			{Command: "/feedback", Description: "Ask or report here"},
@@ -39,13 +69,13 @@ func main() {
 		for _, update := range updates {
 
 			upd, _ := json.MarshalIndent(update, "", "-- ")
-			fmt.Println(string( upd ))
+			fmt.Println(string(upd))
 			fmt.Println("---------------------------")
 
 			chatId := update.CallbackQuery.Message.Chat.ChatId
 			if update.Message.Sticker.FileId != "" {
 				fmt.Println("received a sticker")
-				err = SendSticker(botUrl, update)
+				err = send.Sticker(botUrl, update)
 				if err != nil {
 					log.Println(err)
 				}
@@ -53,33 +83,37 @@ func main() {
 				if update.Message.Entities[0].Type == "bot_command" {
 					fmt.Println("received a command")
 					switch update.Message.Text[1:] {
-						case "start": {
-							err = SendMessage(botUrl, update.Message.Chat.ChatId, "Welcome!")
+					case "start":
+						{
+							err = send.Message(botUrl, update.Message.Chat.ChatId, "Welcome!")
 							if err != nil {
 								log.Println(err)
 							}
 						}
-						case "library": {
-							kbd := InlineKeyboardMarkup{
-								InlineKeyboard: [][]InlineKeyboardButton{
+					case "library":
+						{
+							kbd := types.InlineKeyboardMarkup{
+								InlineKeyboard: [][]types.InlineKeyboardButton{
 									{
-										InlineKeyboardButton{Text: "ЦЭКО", CallbackData: "library;ceko;"},
+										types.InlineKeyboardButton{Text: "ЦЭКО", CallbackData: "library;ceko;"},
 									},
 								},
 							}
-							err = SendInlineKeyboard(botUrl, update.Message.Chat.ChatId, "Доступные ресурсы:", kbd)
+							err = send.InlineKeyboard(botUrl, update.Message.Chat.ChatId, "Доступные ресурсы:", kbd)
 							if err != nil {
 								log.Println(err)
 							}
 						}
-						case "feedback": {
-							err = SendMessage(botUrl, update.Message.Chat.ChatId, "Here is contact of the person who is willing to help you:\nhttps://t.me/undochlorine")
+					case "feedback":
+						{
+							err = send.Message(botUrl, update.Message.Chat.ChatId, "Here is contact of the person who is willing to help you:\nhttps://t.me/undochlorine")
 							if err != nil {
 								log.Println(err)
 							}
 						}
-						default: {
-							err = SendMessage(botUrl, update.Message.Chat.ChatId, "I'm not aware about this command, try later)")
+					default:
+						{
+							err = send.Message(botUrl, update.Message.Chat.ChatId, "I'm not aware about this command, try later)")
 							if err != nil {
 								log.Println(err)
 							}
@@ -90,46 +124,48 @@ func main() {
 				fmt.Println("received a callback query")
 				data := update.CallbackQuery.Data
 				switch {
-					case data[:len("library;")] == "library;": {
+				case data[:len("library;")] == "library;":
+					{
 						if data == "library;" {
-							kbd := InlineKeyboardMarkup{
-								InlineKeyboard: [][]InlineKeyboardButton{
+							kbd := types.InlineKeyboardMarkup{
+								InlineKeyboard: [][]types.InlineKeyboardButton{
 									{
-										InlineKeyboardButton{Text: "ЦЭКО", CallbackData: "library;ceko;"},
+										types.InlineKeyboardButton{Text: "ЦЭКО", CallbackData: "library;ceko;"},
 									},
 								},
 							}
-							err = SendInlineKeyboard(botUrl, chatId, "Доступные ресурсы:", kbd)
+							err = send.InlineKeyboard(botUrl, chatId, "Доступные ресурсы:", kbd)
 							if err != nil {
 								log.Println(err)
 							}
 						} else {
 							deepData := strings.Replace(data, "library;", "", -1)
 							switch {
-								case deepData[0:len("ceko;")] == "ceko;": {
+							case deepData[0:len("ceko;")] == "ceko;":
+								{
 									if deepData == "ceko;" {
-										kbd := InlineKeyboardMarkup{
-											InlineKeyboard: [][]InlineKeyboardButton{
+										kbd := types.InlineKeyboardMarkup{
+											InlineKeyboard: [][]types.InlineKeyboardButton{
 												{
-													InlineKeyboardButton{Text: "Математика", CallbackData: "library;ceko;math;"},
+													types.InlineKeyboardButton{Text: "Математика", CallbackData: "library;ceko;math;"},
 												},
 												{
-													InlineKeyboardButton{Text: "⏪ Сменить ресурс", CallbackData: "library;"},
-
+													types.InlineKeyboardButton{Text: "⏪ Сменить ресурс", CallbackData: "library;"},
 												},
 											},
 										}
-										err = SendInlineKeyboard(botUrl, chatId, "Выберете предмет:", kbd)
+										err = send.InlineKeyboard(botUrl, chatId, "Выберете предмет:", kbd)
 										if err != nil {
 											log.Println(err)
 										}
 									} else {
 										deepData = strings.Replace(deepData, "ceko;", "", -1)
 										switch {
-											case deepData[0:len("math;")] == "math;": {
+										case deepData[0:len("math;")] == "math;":
+											{
 												if deepData == "math;" {
-													kbd := GenerateGridInt(21, 4, "library;ceko;math;")
-													err = SendInlineKeyboard(botUrl, chatId, "Номера доступных заданий:", kbd)
+													kbd := generate.GridInt(21, 4, "library;ceko;math;")
+													err = send.InlineKeyboard(botUrl, chatId, "Номера доступных заданий:", kbd)
 													if err != nil {
 														log.Println(err)
 													}
@@ -148,13 +184,13 @@ func main() {
 													if err != nil {
 														fmt.Sprintf("wrong test req: %v", err)
 													} else {
-														err = handleTaskQuery(
+														err = handle.TaskQuery(
 															botUrl,
 															chatId,
 															"math;",
 															deepData,
 															requestingBlock+";",
-															mathBlocks[requestingBlockIndex],
+															ceko.MathBlocks[requestingBlockIndex],
 														)
 														if err != nil {
 															log.Println(err)
@@ -162,20 +198,20 @@ func main() {
 													}
 												}
 											}
-											default:
-												fmt.Println("Unknown callback query:")
+										default:
+											fmt.Println("Unknown callback query:")
 										}
 									}
 								}
 							}
 						}
 					}
-					default:
-						fmt.Println("Unknown callback query:")
+				default:
+					fmt.Println("Unknown callback query:")
 				}
 			} else {
 				fmt.Println("received a plain message")
-				err = SendMessage(botUrl, update.Message.Chat.ChatId, "...?")
+				err = send.Message(botUrl, update.Message.Chat.ChatId, "...?")
 				if err != nil {
 					log.Println(err)
 				}

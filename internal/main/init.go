@@ -1,36 +1,37 @@
 package main
 
 import (
-	"net/http"
-	"encoding/json"
 	"bytes"
+	"encoding/json"
+	"io"
+	"net/http"
 	"strconv"
-	"io/ioutil"
+	"tgbot/internal/types"
 )
 
-func SetCommands(botUrl string, commands BotCommands) (error) {
+func SetCommands(botUrl string, commands types.BotCommands) error {
 	buf, err := json.Marshal(commands)
 	if err != nil {
 		return err
 	}
-	_, err = http.Post(botUrl + "/setMyCommands", "application/json", bytes.NewBuffer(buf))
+	_, err = http.Post(botUrl+"/setMyCommands", "application/json", bytes.NewBuffer(buf))
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func GetUpdates(botUrl string, offset int) ([]Update, error) {
+func GetUpdates(botUrl string, offset int) ([]types.Update, error) {
 	resp, err := http.Get(botUrl + "/getUpdates" + "?offset=" + strconv.Itoa(offset))
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
-	var restResponse RestResponse
+	var restResponse types.RestResponse
 	err = json.Unmarshal(body, &restResponse)
 	if err != nil {
 		return nil, err
