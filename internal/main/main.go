@@ -71,6 +71,7 @@ func main() {
 		Commands: []types.BotCommand{
 			{Command: "/start", Description: "Simplify your life with our awesome bot"},
 			{Command: "/library", Description: "Get list of resources to study"},
+			{Command: "/corruptfile", Description: "Get ever not opening file (corrupted)"},
 			{Command: "/feedback", Description: "Ask or report here"},
 		},
 	}
