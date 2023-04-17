@@ -18,6 +18,7 @@ import (
 func main() {
 
 	BOT_TOKEN := os.Getenv("BOT_TOKEN")
+	BOT_NAME := os.Getenv("BOT_NAME")
 	if BOT_TOKEN == "" {
 		log.Println("BOT_TOKEN env var is not set")
 		secretJsonFile, err := os.Open("../../config/secret.json")
@@ -36,6 +37,27 @@ func main() {
 		json.Unmarshal(secretJsonByteValue, &secretJsonData)
 
 		BOT_TOKEN = secretJsonData.BOT_TOKEN
+
+		secretJsonFile.Close()
+	}
+	if BOT_NAME == "" {
+		log.Println("BOT_NAME env var is not set")
+		secretJsonFile, err := os.Open("../../config/secret.json")
+		if err != nil {
+			log.Fatal("Json secret file wasn't found! Exit.")
+		}
+		fmt.Println("Successfully opened secret.json")
+		type SecretJson struct {
+			BOT_NAME string
+		}
+
+		secretJsonByteValue, _ := io.ReadAll(secretJsonFile)
+
+		var secretJsonData SecretJson
+
+		json.Unmarshal(secretJsonByteValue, &secretJsonData)
+
+		BOT_NAME = secretJsonData.BOT_NAME
 
 		secretJsonFile.Close()
 	}
@@ -82,41 +104,64 @@ func main() {
 			} else if len(update.Message.Entities) > 0 {
 				if update.Message.Entities[0].Type == "bot_command" {
 					fmt.Println("received a command")
-					switch update.Message.Text[1:] {
-					case "start":
-						{
-							err = send.Message(botUrl, update.Message.Chat.ChatId, "Welcome!")
-							if err != nil {
-								log.Println(err)
+					// proceed command like /start@<bot_name>
+					validCommand := true
+					fmt.Println("full command: ", update.Message.Text)
+					if strings.Contains(update.Message.Text, "@") {
+						receivedBotName := ""
+						for {
+							if strings.Contains(receivedBotName, "@") || len(update.Message.Text) == 0 {
+								break
 							}
+							receivedBotName = string(update.Message.Text[len(update.Message.Text)-1]) + receivedBotName
+							update.Message.Text = update.Message.Text[0 : len(update.Message.Text)-1]
 						}
-					case "library":
-						{
-							kbd := types.InlineKeyboardMarkup{
-								InlineKeyboard: [][]types.InlineKeyboardButton{
-									{
-										types.InlineKeyboardButton{Text: "ЦЭКО", CallbackData: "library;ceko;"},
+						fmt.Println("rec full: ", receivedBotName)
+						receivedBotName = receivedBotName[1:]
+						fmt.Println("rec without @: ", receivedBotName)
+						fmt.Println("bot_name: ", BOT_NAME)
+						if receivedBotName != BOT_NAME {
+							validCommand = false
+						}
+					}
+					if validCommand {
+						switch update.Message.Text[1:] {
+						case "start":
+							{
+								err = send.Message(botUrl, update.Message.Chat.ChatId, "Welcome!")
+								if err != nil {
+									log.Println(err)
+								}
+							}
+						case "library":
+							{
+								kbd := types.InlineKeyboardMarkup{
+									InlineKeyboard: [][]types.InlineKeyboardButton{
+										{
+											types.InlineKeyboardButton{Text: "ЦЭКО", CallbackData: "library;ceko;"},
+										},
 									},
-								},
+								}
+								err = send.InlineKeyboard(botUrl, update.Message.Chat.ChatId, "Доступные ресурсы:", kbd)
+								if err != nil {
+									log.Println(err)
+								}
 							}
-							err = send.InlineKeyboard(botUrl, update.Message.Chat.ChatId, "Доступные ресурсы:", kbd)
-							if err != nil {
-								log.Println(err)
+						case "feedback":
+							{
+								err = send.Message(botUrl, update.Message.Chat.ChatId, "Here is contact of the person who is willing to help you:\nhttps://t.me/undochlorine")
+								if err != nil {
+									log.Println(err)
+								}
 							}
+						default:
+							validCommand = false
 						}
-					case "feedback":
-						{
-							err = send.Message(botUrl, update.Message.Chat.ChatId, "Here is contact of the person who is willing to help you:\nhttps://t.me/undochlorine")
-							if err != nil {
-								log.Println(err)
-							}
-						}
-					default:
-						{
-							err = send.Message(botUrl, update.Message.Chat.ChatId, "I'm not aware about this command, try later)")
-							if err != nil {
-								log.Println(err)
-							}
+					}
+					if !validCommand {
+						err = send.Message(botUrl, update.Message.Chat.ChatId, "I'm not aware about this command, try later)")
+						if err != nil {
+							log.Println(err)
 						}
 					}
 				}
