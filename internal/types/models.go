@@ -13,6 +13,13 @@ type Message struct {
 	WebAppData        WebAppData           `json:"web_app_data,omitempty"`
 	Entities          []MessageEntity      `json:"entities,omitempty"`
 	ReplyMarkupInline InlineKeyboardMarkup `json:"reply_markup,omitempty"`
+	Document          Document             `json:"document,omitempty"`
+}
+
+type Document struct {
+	FileId       string `json:"file_id,omitempty"`
+	FileUniqueId string `json:"file_unique_id,omitempty"`
+	FileName     string `json:"file_name,omitempty"`
 }
 
 type MessageEntity struct {

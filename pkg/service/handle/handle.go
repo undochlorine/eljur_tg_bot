@@ -44,7 +44,7 @@ func TaskQuery(botUrl string, chatId int, subject, deepData, blockWithPostfix st
 			if taskIndex != len(block)-1 {
 				urlBatchToSend = append(urlBatchToSend, block[taskIndex+1][2])
 			}
-			err := send.Message(botUrl, chatId, "Вот выбранное упражнение и соседние с ним:")
+			_, err := send.Message(botUrl, chatId, "Вот выбранное упражнение и соседние с ним:")
 			if err != nil {
 				return err
 			}

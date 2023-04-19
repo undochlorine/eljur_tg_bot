@@ -7,17 +7,26 @@ import (
 	"tgbot/internal/types"
 )
 
-func Message(botUrl string, chatId int, message string) error {
+func Message(botUrl string, chatId int, message string) (int, error) {
 	var botMessage types.BotMessage
 	botMessage.ChatId = chatId
 	botMessage.Text = message
 	buf, err := json.Marshal(botMessage)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	_, err = http.Post(botUrl+"/sendMessage", "application/json", bytes.NewBuffer(buf))
+	resp, err := http.Post(botUrl+"/sendMessage", "application/json", bytes.NewBuffer(buf))
 	if err != nil {
-		return err
+		return 0, err
 	}
-	return nil
+	defer resp.Body.Close()
+
+	var responseMap map[string]interface{}
+	err = json.NewDecoder(resp.Body).Decode(&responseMap)
+	if err != nil {
+		return 0, err
+	}
+	messageId := int(responseMap["result"].(map[string]interface{})["message_id"].(float64))
+
+	return messageId, nil
 }

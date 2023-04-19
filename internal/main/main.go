@@ -10,9 +10,11 @@ import (
 	"strings"
 	"tgbot/assets/ceko"
 	"tgbot/internal/types"
+	"tgbot/pkg/http/corruptFile"
 	"tgbot/pkg/send"
 	"tgbot/pkg/service/generate"
 	"tgbot/pkg/service/handle"
+	"tgbot/pkg/user"
 )
 
 func main() {
@@ -67,6 +69,8 @@ func main() {
 	botAPI := "https://api.telegram.org/bot"
 	botUrl := botAPI + BOT_TOKEN
 
+	var users = user.Users{}
+
 	commands := types.BotCommands{
 		Commands: []types.BotCommand{
 			{Command: "/start", Description: "Simplify your life with our awesome bot"},
@@ -96,6 +100,15 @@ func main() {
 			fmt.Println("---------------------------")
 
 			chatId := update.CallbackQuery.Message.Chat.ChatId
+			if chatId == 0 {
+				chatId = update.Message.Chat.ChatId
+			}
+			_, exist := users[chatId]
+			if !exist {
+				users[chatId] = &user.User{}
+				users[chatId].SetState(user.InitState)
+			}
+
 			if update.Message.Sticker.FileId != "" {
 				fmt.Println("received a sticker")
 				err = send.Sticker(botUrl, update)
@@ -107,7 +120,6 @@ func main() {
 					fmt.Println("received a command")
 					// proceed command like /start@<bot_name>
 					validCommand := true
-					fmt.Println("full command: ", update.Message.Text)
 					if strings.Contains(update.Message.Text, "@") {
 						receivedBotName := ""
 						for {
@@ -129,7 +141,7 @@ func main() {
 						switch update.Message.Text[1:] {
 						case "start":
 							{
-								err = send.Message(botUrl, update.Message.Chat.ChatId, "Welcome!")
+								_, err = send.Message(botUrl, update.Message.Chat.ChatId, "Welcome!")
 								if err != nil {
 									log.Println(err)
 								}
@@ -148,9 +160,23 @@ func main() {
 									log.Println(err)
 								}
 							}
+						case "corruptfile":
+							_, err = send.Message(botUrl, chatId, "Send the file to corrupt:")
+							if err != nil {
+								log.Println(err)
+								err = users[chatId].SetState(user.InitState)
+								if err != nil {
+									log.Println(err)
+								}
+							} else {
+								err = users[chatId].SetState(user.WaitingFileState)
+								if err != nil {
+									log.Println(err)
+								}
+							}
 						case "feedback":
 							{
-								err = send.Message(botUrl, update.Message.Chat.ChatId, "Here is contact of the person who is willing to help you:\nhttps://t.me/undochlorine")
+								_, err = send.Message(botUrl, update.Message.Chat.ChatId, "Here is contact of the person who is willing to help you:\nhttps://t.me/undochlorine")
 								if err != nil {
 									log.Println(err)
 								}
@@ -160,11 +186,40 @@ func main() {
 						}
 					}
 					if !validCommand {
-						err = send.Message(botUrl, update.Message.Chat.ChatId, "I'm not aware about this command, try later)")
+						_, err = send.Message(botUrl, update.Message.Chat.ChatId, "I'm not aware about this command, try later)")
 						if err != nil {
 							log.Println(err)
 						}
 					}
+				}
+			} else if update.Message.Document.FileId != "" && users[chatId].GetState() == user.WaitingFileState {
+				fileId := update.Message.Document.FileId
+				filename := update.Message.Document.FileName
+				extension := ""
+				for filename[len(filename)-1] != '.' {
+					extension = string(filename[len(filename)-1]) + extension
+					filename = filename[:len(filename)-1]
+				}
+				extension = string(filename[len(filename)-1]) + extension
+				filename = filename[:len(filename)-1]
+
+				filesInBytes, err := corruptFile.GetFile(BOT_TOKEN, fileId)
+				if err != nil {
+					log.Println(err)
+				}
+
+				// corrupt the file
+				corruptFile.Corrupt(filesInBytes)
+
+				// send the file back
+				err = send.Document(botUrl, chatId, filesInBytes, filename+"(corrupted)"+extension)
+				if err != nil {
+					log.Println(err)
+				}
+
+				err = users[chatId].SetState(user.InitState)
+				if err != nil {
+					log.Println(err)
 				}
 			} else if update.CallbackQuery.Id != "" {
 				fmt.Println("received a callback query")
@@ -257,7 +312,11 @@ func main() {
 				}
 			} else {
 				fmt.Println("received a plain message")
-				err = send.Message(botUrl, update.Message.Chat.ChatId, "...?")
+				_, err = send.Message(botUrl, update.Message.Chat.ChatId, "...?")
+				if err != nil {
+					log.Println(err)
+				}
+				err = users[chatId].SetState(user.InitState)
 				if err != nil {
 					log.Println(err)
 				}
